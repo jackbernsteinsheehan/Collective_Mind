@@ -1,20 +1,72 @@
-# Expo Router Example
+# Collective Mind
 
-Use [`expo-router`](https://docs.expo.dev/router/introduction/) to build native navigation using files in the `app/` directory.
+A mobile app that pairs users with opposing ideological viewpoints for meaningful debates and discussions.
 
-## 🚀 How to use
+## Features
 
-```sh
-npx create-expo-app -e with-router
+- User authentication (signup/login)
+- Ideological matching system
+- Debate interface
+- User profiles
+- Real-time chat
+
+## Tech Stack
+
+- React Native
+- Expo
+- React Navigation
+- [Add other major dependencies here]
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or newer)
+- npm or yarn
+- Expo CLI
+- iOS Simulator (for Mac) or Android Studio (for Android development)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone [your-repo-url]
+cd Collective_Mind
 ```
 
-## Deploy
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
 
-Deploy on all platforms with Expo Application Services (EAS).
+3. Start the development server:
+```bash
+npx expo start
+```
 
-- Deploy the website: `npx eas-cli deploy` — [Learn more](https://docs.expo.dev/eas/hosting/get-started/)
-- Deploy on iOS and Android using: `npx eas-cli build` — [Learn more](https://expo.dev/eas)
+4. Run on your preferred platform:
+- Press `i` for iOS simulator
+- Press `a` for Android emulator
+- Scan QR code with Expo Go app on your physical device
 
-## 📝 Notes
+## Project Structure
 
-- [Expo Router: Docs](https://docs.expo.dev/router/introduction/)
+```
+Collective_Mind/
+├── app/                 # Main application code
+│   ├── index.js        # Landing page
+│   ├── login.js        # Login screen
+│   └── signup.js       # Signup screen
+├── assets/             # Images, fonts, and other static files
+└── components/         # Reusable React components
+```
+
+## Contributing
+
+[Add contribution guidelines here]
+
+## License
+
+[Add license information here]
