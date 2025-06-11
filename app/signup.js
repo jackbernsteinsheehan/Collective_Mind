@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Signup() {
   const [name, setName] = useState('');
@@ -11,9 +12,18 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
 
-  const handleSignup = () => {
-    // TODO: Implement signup logic
-    console.log('Signup:', { name, email, password, confirmPassword });
+  const handleSignup = async () => {
+    try {
+      // TODO: Implement actual signup logic
+      console.log('Signup:', { name, email, password, confirmPassword });
+      
+      // For new users, we'll show the survey intro page
+      console.log('Navigating to survey intro');
+      router.replace('/survey-intro');
+    } catch (error) {
+      console.error('Error during signup:', error);
+      router.replace('/survey-intro');
+    }
   };
 
   return (

@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -10,6 +11,39 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef(null);
   const router = useRouter();
+
+  // Clear survey completion status on component mount
+  useEffect(() => {
+    const clearSurveyStatus = async () => {
+      try {
+        await AsyncStorage.removeItem('surveyCompleted');
+        console.log('Survey completion status cleared');
+      } catch (error) {
+        console.error('Error clearing survey status:', error);
+      }
+    };
+    clearSurveyStatus();
+  }, []);
+
+  const handleGetStarted = async () => {
+    console.log('Get Started button pressed');
+    try {
+      const surveyCompleted = await AsyncStorage.getItem('surveyCompleted');
+      console.log('Survey completed status:', surveyCompleted);
+      
+      if (surveyCompleted === 'true') {
+        console.log('Navigating to tabs');
+        router.replace('/(tabs)/home');
+      } else {
+        console.log('Navigating to login');
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Error checking survey completion:', error);
+      console.log('Error occurred, navigating to login');
+      router.push('/login');
+    }
+  };
 
   const steps = [
     {
@@ -83,7 +117,7 @@ export default function Home() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/login')}>
+      <TouchableOpacity style={styles.primaryButton} onPress={handleGetStarted}>
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>
     </SafeAreaView>

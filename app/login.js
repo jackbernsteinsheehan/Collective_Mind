@@ -3,15 +3,30 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
 
-  const handleLogin = () => {
-    // TODO: Implement login logic
-    console.log('Login:', email, password);
+  const handleLogin = async () => {
+    try {
+      // TODO: Implement actual login logic
+      console.log('Login:', email, password);
+      
+      // Set survey as completed for returning users
+      await AsyncStorage.setItem('surveyCompleted', 'true');
+      console.log('Survey marked as completed for returning user');
+      
+      // Navigate to tabs
+      console.log('Navigating to tabs');
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      console.error('Error during login:', error);
+      // If there's an error, go to tabs as a fallback
+      router.replace('/(tabs)/home');
+    }
   };
 
   return (
