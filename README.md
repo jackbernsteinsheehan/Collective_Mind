@@ -15,10 +15,8 @@ A mobile app that pairs users with opposing ideological viewpoints for meaningfu
 - React Native
 - Expo
 - React Navigation
-- [Add other major dependencies here]
 
 ## Getting Started
-
 ### Prerequisites
 
 - Node.js (v14 or newer)
