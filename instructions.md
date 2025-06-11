@@ -1,4 +1,5 @@
-#Getting Started
+# Getting Started
+- - - - - - - - - - - - - - - - - -
 - In your finder, navigate to the location that you want to store the project (documents, desktop, some other folder) and create a new, empty folder
 - Open the folder in your code editor and open a new terminal
 - Run git clone [repo url]
