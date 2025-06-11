@@ -17,10 +17,10 @@
 - Open the issues page on GitHub, within our repo, and check if you have any issues assigned to you
 - If you do, begin working on them
 - When you're done, commit the changes to your branch by running in your terminal, one line at a time:
-  git fetch
-  git branch -r
-  make sure you're on your workbranch. If not, run 
-  git add .
-  git commit -m "enter message here"
+   -git fetch
+   -git branch -r
+   -make sure you're on your workbranch. If not, run 
+   -git add .
+   -git commit -m "enter message here"
   
   
