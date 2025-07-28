@@ -5,6 +5,9 @@
       "expo-router"
     ],
     "name": "Collective_Mind",
-    "slug": "Collective_Mind"
+    "slug": "Collective_Mind",
+    "ios": {
+      "bundleIdentifier": "com.jackbernsteinsheehan.Collective-Mind"
+    }
   }
 }

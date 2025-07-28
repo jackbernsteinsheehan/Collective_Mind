@@ -83,3 +83,5 @@ yarn-error.log
 /ios/Pods/
 
 venv/
+backend/serviceAccountKey.json
+backend/serviceAccountKey.example.json
