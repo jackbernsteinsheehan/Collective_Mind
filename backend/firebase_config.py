@@ -30,78 +30,95 @@ db = firestore.client()
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/api/survey', methods=['POST'])
-def submit_survey():
-    """Store survey data in Firebase"""
+@app.route('/api/users/create', methods=['POST'])
+def create_user():
+    """Create a new user when they sign up"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        username = data.get('username')
+        
+        if not email or not username:
+            return jsonify({'error': 'Email and username required'}), 400
+        
+        # Generate user ID
+        user_id = f"user_{int(datetime.now().timestamp())}"
+        
+        # Create user document
+        user_ref = db.collection('users').document(user_id)
+        user_ref.set({
+            'user_id': user_id,
+            'email': email,
+            'username': username,
+            'created_at': firestore.SERVER_TIMESTAMP,
+            'survey_completed': False,
+            'status': 'inactive'
+        })
+        
+        print(f"Created new user: {user_id}")
+        return jsonify({
+            'user_id': user_id,
+            'message': 'User created successfully'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        return jsonify({'error': 'Failed to create user'}), 500
+
+@app.route('/api/users/<user_id>/survey', methods=['POST'])
+def update_user_survey(user_id):
+    """Update user with survey data when they complete the survey"""
     try:
         data = request.get_json()
         
-        # Store in 'surveys' collection
-        survey_ref = db.collection('surveys').document()
-        survey_ref.set({
-            'user_id': data.get('user_id', 'anonymous'),  # Default if no user_id
+        # Update user document with survey data
+        user_ref = db.collection('users').document(user_id)
+        user_ref.update({
             'political_spectrum': data.get('political_spectrum'),
             'economic_views': data.get('economic_views'),
             'social_views': data.get('social_views'),
-            'timestamp': firestore.SERVER_TIMESTAMP,
-            'status': 'available'  # Ready for pairing
+            'survey_completed': True,
+            'survey_completed_at': firestore.SERVER_TIMESTAMP,
+            'status': 'available'  # Now available for pairing
         })
         
-        print(f"Stored survey data: {data}")
-        return jsonify({'message': 'Survey stored successfully'}), 200
+        print(f"Updated user {user_id} with survey data")
+        return jsonify({'message': 'Survey data updated successfully'}), 200
         
     except Exception as e:
-        print(f"Error storing survey: {e}")
-        return jsonify({'error': 'Failed to store survey'}), 500
+        print(f"Error updating user survey: {e}")
+        return jsonify({'error': 'Failed to update survey data'}), 500
 
-@app.route('/api/survey', methods=['GET'])
-def get_surveys():
-    """Get all survey responses"""
-    try:
-        surveys_ref = db.collection('surveys')
-        docs = surveys_ref.stream()
-        
-        surveys = []
-        for doc in docs:
-            survey_data = doc.to_dict()
-            surveys.append({
-                'id': doc.id,
-                'user_id': survey_data.get('user_id'),
-                'political_spectrum': survey_data.get('political_spectrum'),
-                'economic_views': survey_data.get('economic_views'),
-                'social_views': survey_data.get('social_views'),
-                'status': survey_data.get('status'),
-                'timestamp': survey_data.get('timestamp')
-            })
-        
-        return jsonify({'surveys': surveys}), 200
-        
-    except Exception as e:
-        print(f"Error retrieving surveys: {e}")
-        return jsonify({'error': 'Failed to retrieve surveys'}), 500
-
-@app.route('/api/chat/find-partner', methods=['POST'])
-def find_chat_partner():
-    """Find user with opposite political views"""
+@app.route('/api/debate/join', methods=['POST'])
+def join_debate():
+    """Handle the complete debate joining flow"""
     try:
         data = request.get_json()
-        current_user_id = data.get('user_id')
+        user_id = data.get('user_id')
+        debate_topic = data.get('debate_topic')
         
-        # Get current user's political views
-        current_user_query = db.collection('surveys').where('user_id', '==', current_user_id).limit(1)
-        current_user_docs = current_user_query.stream()
+        if not user_id:
+            return jsonify({'error': 'User ID required'}), 400
         
-        current_user_data = None
-        for doc in current_user_docs:
-            current_user_data = doc.to_dict()
-            break
+        # Check if user exists and has completed survey
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
         
-        if not current_user_data:
+        if not user_doc.exists:
             return jsonify({'error': 'User not found'}), 404
         
-        current_political = current_user_data.get('political_spectrum')
+        user_data = user_doc.to_dict()
         
-        # Define opposite views mapping
+        if not user_data.get('survey_completed'):
+            return jsonify({'error': 'Survey not completed'}), 400
+        
+        if user_data.get('status') == 'in_chat':
+            return jsonify({'error': 'User already in a chat'}), 400
+        
+        print(f"User {user_id} wants to join debate: {debate_topic}")
+        
+        # Find partner with opposite views
+        current_political = user_data.get('political_spectrum')
         opposite_views = {
             'far_left': ['far_right', 'right'],
             'left': ['right', 'far_right'],
@@ -112,68 +129,89 @@ def find_chat_partner():
             'far_right': ['far_left', 'left']
         }
         
-        # Find users with opposite views who are available
         target_views = opposite_views.get(current_political, [])
+        partner_found = False
+        
+        print(f"Looking for partners with views: {target_views}")
         
         for view in target_views:
-            available_users_query = db.collection('surveys').where(
+            # Find available users with opposite views
+            available_users = db.collection('users').where(
                 'political_spectrum', '==', view
-            ).where('status', '==', 'available').limit(1)
-            
-            available_users = available_users_query.stream()
+            ).where('status', '==', 'available').where(
+                'survey_completed', '==', True
+            ).limit(1).stream()
             
             for user in available_users:
-                user_data = user.to_dict()
-                if user_data.get('user_id') != current_user_id:
+                potential_partner_data = user.to_dict()
+                if potential_partner_data.get('user_id') != user_id:
                     # Found a match!
+                    partner_found = True
+                    partner_id = potential_partner_data.get('user_id')
+                    print(f"Found partner: {partner_id} with views: {potential_partner_data.get('political_spectrum')}")
+                    
+                    # Create chat session
+                    chat_ref = db.collection('chats').document()
+                    chat_ref.set({
+                        'user1_id': user_id,
+                        'user2_id': partner_id,
+                        'debate_topic': debate_topic,
+                        'created_at': firestore.SERVER_TIMESTAMP,
+                        'status': 'active'
+                    })
+                    
+                    # Update both users to 'in_chat'
+                    user_ref.update({'status': 'in_chat'})
+                    db.collection('users').document(partner_id).update({'status': 'in_chat'})
+                    
                     return jsonify({
-                        'partner_id': user_data.get('user_id'),
-                        'partner_views': user_data.get('political_spectrum')
+                        'success': True,
+                        'chat_id': chat_ref.id,
+                        'partner_views': potential_partner_data.get('political_spectrum'),
+                        'message': f'Paired with someone who identifies as {potential_partner_data.get("political_spectrum")}'
                     }), 200
         
-        return jsonify({'message': 'No suitable partner found'}), 404
-        
+        if not partner_found:
+            print(f"No partner found for user {user_id}")
+            return jsonify({
+                'success': False,
+                'message': 'No suitable partner found. You\'ll be notified when someone joins.'
+            }), 200
+            
     except Exception as e:
-        print(f"Error finding partner: {e}")
-        return jsonify({'error': 'Failed to find partner'}), 500
+        print(f"Error in join_debate: {e}")
+        return jsonify({'error': 'Failed to join debate'}), 500
 
-@app.route('/api/chat/create', methods=['POST'])
-def create_chat():
-    """Create chat between matched users"""
+@app.route('/api/debate/status', methods=['GET'])
+def get_debate_status():
+    """Get available debates and participant counts"""
     try:
-        data = request.get_json()
-        user1_id = data.get('user1_id')
-        user2_id = data.get('user2_id')
+        # Get counts for each debate topic
+        topics = ['Climate Change', 'Universal Healthcare', 'Gun Control', 'Immigration']
+        status_data = {}
         
-        # Create chat
-        chat_ref = db.collection('chats').document()
-        chat_ref.set({
-            'user1_id': user1_id,
-            'user2_id': user2_id,
-            'created_at': firestore.SERVER_TIMESTAMP,
-            'status': 'active'
-        })
+        for topic in topics:
+            # Count available users for this topic
+            available_count = len(list(db.collection('users').where(
+                'status', '==', 'available'
+            ).where('survey_completed', '==', True).stream()))
+            
+            # Count active chats for this topic
+            active_chats = len(list(db.collection('chats').where(
+                'debate_topic', '==', topic
+            ).where('status', '==', 'active').stream()))
+            
+            status_data[topic] = {
+                'available_participants': available_count,
+                'active_debates': active_chats,
+                'total_participants': available_count + (active_chats * 2)
+            }
         
-        # Update both users to 'in_chat'
-        # Find and update user1
-        user1_query = db.collection('surveys').where('user_id', '==', user1_id)
-        user1_docs = user1_query.stream()
-        for doc in user1_docs:
-            doc.reference.update({'status': 'in_chat'})
-            break
-        
-        # Find and update user2
-        user2_query = db.collection('surveys').where('user_id', '==', user2_id)
-        user2_docs = user2_query.stream()
-        for doc in user2_docs:
-            doc.reference.update({'status': 'in_chat'})
-            break
-        
-        return jsonify({'chat_id': chat_ref.id, 'message': 'Chat created successfully'}), 200
+        return jsonify(status_data), 200
         
     except Exception as e:
-        print(f"Error creating chat: {e}")
-        return jsonify({'error': 'Failed to create chat'}), 500
+        print(f"Error getting debate status: {e}")
+        return jsonify({'error': 'Failed to get debate status'}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -183,9 +221,9 @@ def health_check():
 if __name__ == '__main__':
     print("Starting Firebase Survey & Chat API...")
     print("Available endpoints:")
-    print("  POST /api/survey - Submit survey data")
-    print("  GET  /api/survey - Get all surveys")
-    print("  POST /api/chat/find-partner - Find chat partner")
-    print("  POST /api/chat/create - Create chat session")
+    print("  POST /api/users/create - Create new user")
+    print("  POST /api/users/<id>/survey - Update user with survey data")
+    print("  POST /api/debate/join - Join debate with partner matching")
+    print("  GET  /api/debate/status - Get debate status")
     print("  GET  /health - Health check")
     app.run(debug=True, host='0.0.0.0', port=5000) 

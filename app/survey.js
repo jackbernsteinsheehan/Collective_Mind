@@ -64,36 +64,6 @@ export default function Survey() {
     }
   ];
 
-  // Add this new function for testing the backend
-  const testBackend = async () => {
-    const testData = {
-      user_id: "test_user_" + Date.now(), // Generate unique user ID
-      political_spectrum: "left",
-      economic_views: "progressive", 
-      social_views: "liberal"
-    };
-    
-    try {
-      console.log('Testing Firebase backend with survey data:', testData);
-      
-      const response = await fetch('http://192.168.50.47:5000/api/survey', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testData)
-      });
-      
-      const result = await response.json();
-      console.log('Firebase backend response:', result);
-      alert('Survey stored successfully in Firebase! Check console for details.');
-      
-    } catch (error) {
-      console.error('Firebase backend test failed:', error);
-      alert('Firebase backend test failed: ' + error.message);
-    }
-  };
-
   const handleAnswer = (questionId, value) => {
     setAnswers(prev => ({
       ...prev,
@@ -118,40 +88,45 @@ export default function Survey() {
   const handleSubmit = async () => {
     try {
       console.log('Survey answers to be submitted:', answers);
-      console.log('Survey answers JSON:', JSON.stringify(answers, null, 2));
       
-      // Send data to backend API: changed to use mac IP
-      const response = await fetch('http://192.168.50.47:5000/api/survey', {
+      // Get the user ID from local storage (created during signup)
+      const userId = await AsyncStorage.getItem('userId');
+      
+      if (!userId) {
+        alert('User not found. Please sign up first.');
+        return;
+      }
+      
+      // Update user with survey data
+      const response = await fetch(`http://192.168.50.46:5000/api/users/${userId}/survey`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(answers)
+        body: JSON.stringify({
+          political_spectrum: answers.political_spectrum,
+          economic_views: answers.economic_views,
+          social_views: answers.social_views
+        })
       });
       
       if (response.ok) {
         const result = await response.json();
-        console.log('Survey submitted successfully:', result);
+        console.log('Survey data updated:', result);
         
-        // Save survey answers locally as backup
+        // Save survey answers locally for the debates tab
         await AsyncStorage.setItem('surveyAnswers', JSON.stringify(answers));
         await AsyncStorage.setItem('surveyCompleted', 'true');
         
         // Navigate to the tabs section
         router.replace('/(tabs)/home');
       } else {
-        console.error('Failed to submit survey to backend');
-        // Still save locally as fallback
-        await AsyncStorage.setItem('surveyAnswers', JSON.stringify(answers));
-        await AsyncStorage.setItem('surveyCompleted', 'true');
-        router.replace('/(tabs)/home');
+        throw new Error('Failed to update survey data');
       }
+      
     } catch (error) {
       console.error('Error saving survey data:', error);
-      // Fallback to local storage
-      await AsyncStorage.setItem('surveyAnswers', JSON.stringify(answers));
-      await AsyncStorage.setItem('surveyCompleted', 'true');
-      router.replace('/(tabs)/home');
+      alert('Error saving survey. Please try again.');
     }
   };
 
@@ -200,14 +175,6 @@ export default function Survey() {
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* Add the test button here */}
-        <TouchableOpacity 
-          style={styles.testButton}
-          onPress={testBackend}
-        >
-          <Text style={styles.testButtonText}>Test Firebase Storage</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.navigation}>
@@ -335,17 +302,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-  },
-  testButton: {
-    backgroundColor: '#FF6B6B',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  testButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 }); 
