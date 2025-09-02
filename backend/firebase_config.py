@@ -213,6 +213,36 @@ def get_debate_status():
         print(f"Error getting debate status: {e}")
         return jsonify({'error': 'Failed to get debate status'}), 500
 
+@app.route('/api/update/<user_id>/immigration/views', methods=['POST'])
+def update_immigration_views(user_id):
+    try:
+        data = request.get_json(silent=True) or {}
+        # DO NOT overwrite the path param user_id
+        required = ['healthy_society', 'immigrant_children', 'healthy_economy']
+        missing = [k for k in required if data.get(k) is None]
+        if missing:
+            return jsonify({'error': f'Missing fields: {", ".join(missing)}'}), 400
+
+        user_ref = db.collection('users').document(user_id)
+        # set(..., merge=True) works even if the doc doesn't exist yet
+        user_ref.set({
+            'healthy_society': data['healthy_society'],
+            'immigrant_children': data['immigrant_children'],
+            'healthy_economy': data['healthy_economy'],
+            'immigration_completed': True,
+            'immigration_completed_at': firestore.SERVER_TIMESTAMP,
+            'status': 'available',
+        }, merge=True)
+
+        print(f"[immigration/views] Updated user {user_id} with {data}")
+        return jsonify({'ok': True, 'user_id': user_id}), 200
+
+    except Exception as e:
+        print(f"Error updating immigration views: {e}")
+        return jsonify({'error': 'Failed to update immigration views'}), 500
+
+
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
