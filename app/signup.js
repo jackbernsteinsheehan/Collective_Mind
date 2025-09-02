@@ -17,7 +17,7 @@ export default function Signup() {
     try {
       console.log('Creating user:', { email, username });
       
-      const response = await fetch('http://192.168.50.46:5000/api/users/create', {
+      const response = await fetch('http://192.168.50.88:5000/api/users/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

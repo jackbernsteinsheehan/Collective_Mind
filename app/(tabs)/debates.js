@@ -23,7 +23,7 @@ export default function Debates() {
           </Text>
           <TouchableOpacity 
             style={styles.findPartnerButton}
-            onPress={() => router.push('/debate-questions')}
+            onPress={() => router.push('/immigration-questions')}
           >
             <Text style={styles.findPartnerButtonText}>Find Debate Partner</Text>
           </TouchableOpacity>

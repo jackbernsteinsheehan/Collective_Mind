@@ -98,7 +98,7 @@ export default function Survey() {
       }
       
       // Update user with survey data
-      const response = await fetch(`http://192.168.50.46:5000/api/users/${userId}/survey`, {
+      const response = await fetch(`http://192.168.50.88:5000/api/users/${userId}/survey`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

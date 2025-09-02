@@ -40,7 +40,7 @@ export default function DebateQuestions() {
         { value: 'strongly_disagree', label: 'Strongly disagree' },
       ]
     },
-    
+
     {
       id: 'healthy_economy',
       question: 'Is immigration healthy for the economy?',
@@ -77,6 +77,7 @@ export default function DebateQuestions() {
   };
 
   const handleComplete = async () => {
+    const userId = await AsyncStorage.getItem('userId');
     try {
       // Save debate preferences
       const userId = await AsyncStorage.getItem('userId');
