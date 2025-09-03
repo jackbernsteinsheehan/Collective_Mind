@@ -17,9 +17,9 @@ export default function Debates() {
       <ScrollView style={styles.content}>
         {/* Find Debate Partner Section */}
         <View style={styles.findPartnerSection}>
-          <Text style={styles.sectionTitle}>Find Debate Partner</Text>
+          <Text style={styles.sectionTitle}>Immigration</Text>
           <Text style={styles.sectionDescription}>
-            Answer a few questions and get matched with someone who has opposite views
+            To what extent do you agree with these statements?
           </Text>
           <TouchableOpacity 
             style={styles.findPartnerButton}

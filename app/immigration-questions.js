@@ -20,7 +20,7 @@ export default function DebateQuestions() {
   const questions = [
     {
       id: 'healthy_society',
-      question: 'Is immigration necessary for a healthy society?',
+      question: 'Immigration is necessary for a healthy society.',
       options: [
         { value: 'strongly_agree', label: 'Strongly agree' },
         { value: 'agree', label: 'Agree' },
@@ -31,7 +31,7 @@ export default function DebateQuestions() {
     },
     {
       id: 'immigrant_children',
-      question: 'Should children brought illegally to the US at a young age be treated as illegal immigrants?',
+      question: 'Young children brought illegally to the US should be treated as illegal immigrants.',
       options: [
         { value: 'strongly_agree', label: 'Strongly agree' },
         { value: 'agree', label: 'Agree' },
@@ -43,7 +43,7 @@ export default function DebateQuestions() {
 
     {
       id: 'healthy_economy',
-      question: 'Is immigration healthy for the economy?',
+      question: 'Immigration is healthy for the US economy.',
       options: [
         { value: 'strongly_agree', label: 'Strongly agree' },
         { value: 'agree', label: 'Agree' },
