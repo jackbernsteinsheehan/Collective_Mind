@@ -241,7 +241,52 @@ def update_immigration_views(user_id):
         print(f"Error updating immigration views: {e}")
         return jsonify({'error': 'Failed to update immigration views'}), 500
 
+# Endpoint for creating a new chat room
+# TODO: add functioality for changing activity status
+@app.route('/api/create/room/<user1_id>/<user2_id>', methods=['POST'])
+def create_chat_room(user1_id, user2_id):
+    try:
+        # Generate chat id
+        chat_id = f"chat_{int(datetime.now().timestamp())}"
 
+        data = request.get_json()
+        chat_ref = db.collection('chats').document(chat_id)
+        chat_ref.set({
+            'user1_id': user1_id,
+            'user2_id': user2_id,
+            'created_at': firestore.SERVER_TIMESTAMP,
+            'status': 'active'
+        })
+        print(f'created new chat room: {chat_id}')
+        return jsonify({
+            'chat_id': chat_id,
+            'message': 'chat room created successfully'
+        }), 200
+
+    except Exception as e:
+        print(f'error creating chat room: {e}')
+        return jsonify({'error': 'Failed to create chat room'}), 500
+
+
+# ENDPOINT FOR UPDATING MESSAGE HISTORY
+@app.route('/api/update/<chat_id>/messages', methods=['POST'])
+def update_chat_messages(chat_id):
+'''Update message logs for a specific room. Body should include sender_id and message_content'''
+    try:
+        # generate message_id
+        message_id = f'message_{int(datetime.now().timestamp())}
+
+        data = request.get_json()
+        # add message to database
+        chat_ref = db.collection('chats').document(chat_id).collection('messages').document(chat_id)
+        chat_ref.update({
+            'senderId': data.get('sender_id')
+            'text': data.get('message_content')
+            'timestamp': firestore.SERVER_TIMESTAMP
+        })
+    except Exception as e:
+        print(f'error saving message')
+        return jsonify({'error': 'Failed to save message'}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():

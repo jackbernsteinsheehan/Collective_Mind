@@ -15,9 +15,23 @@ export default function Debates() {
 
       {/* Main Content */}
       <ScrollView style={styles.content}>
-        {/* Find Debate Partner Section */}
+        {/* Immigration Section */}
         <View style={styles.findPartnerSection}>
           <Text style={styles.sectionTitle}>Immigration</Text>
+          <Text style={styles.sectionDescription}>
+            To what extent do you agree with these statements?
+          </Text>
+          <TouchableOpacity 
+            style={styles.findPartnerButton}
+            onPress={() => router.push('/immigration-questions')}
+          >
+            <Text style={styles.findPartnerButtonText}>Find Debate Partner</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Gun Control Section */}
+        <View style={styles.findPartnerSection}>
+          <Text style={styles.sectionTitle}>Gun Control</Text>
           <Text style={styles.sectionDescription}>
             To what extent do you agree with these statements?
           </Text>
