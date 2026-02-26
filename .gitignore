@@ -85,3 +85,5 @@ yarn-error.log
 venv/
 backend/serviceAccountKey.json
 backend/serviceAccountKey.example.json
+
+__pycache__/
