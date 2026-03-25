@@ -87,14 +87,46 @@ export default function Survey() {
 
   const handleSubmit = async () => {
     try {
-      // Save survey answers
-      await AsyncStorage.setItem('surveyAnswers', JSON.stringify(answers));
-      // Mark survey as completed
-      await AsyncStorage.setItem('surveyCompleted', 'true');
-      // Navigate to the tabs section
-      router.replace('/(tabs)/home');
+      console.log('Survey answers to be submitted:', answers);
+      
+      // Get the user ID from local storage (created during signup)
+      const userId = await AsyncStorage.getItem('userId');
+      
+      if (!userId) {
+        alert('User not found. Please sign up first.');
+        return;
+      }
+      
+      // Update user with survey data
+      const response = await fetch(`http://192.168.50.88:5000/api/users/${userId}/survey`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          political_spectrum: answers.political_spectrum,
+          economic_views: answers.economic_views,
+          social_views: answers.social_views
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Survey data updated:', result);
+        
+        // Save survey answers locally for the debates tab
+        await AsyncStorage.setItem('surveyAnswers', JSON.stringify(answers));
+        await AsyncStorage.setItem('surveyCompleted', 'true');
+        
+        // Navigate to the tabs section
+        router.replace('/(tabs)/home');
+      } else {
+        throw new Error('Failed to update survey data');
+      }
+      
     } catch (error) {
       console.error('Error saving survey data:', error);
+      alert('Error saving survey. Please try again.');
     }
   };
 

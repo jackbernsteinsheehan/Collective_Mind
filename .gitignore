@@ -81,3 +81,9 @@ yarn-error.log
 
 # CocoaPods
 /ios/Pods/
+
+venv/
+backend/serviceAccountKey.json
+backend/serviceAccountKey.example.json
+
+__pycache__/

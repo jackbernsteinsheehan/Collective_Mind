@@ -1,6 +1,9 @@
 import { View, Text, StyleSheet, SafeAreaView, StatusBar, ScrollView, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function Debates() {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
@@ -12,32 +15,75 @@ export default function Debates() {
 
       {/* Main Content */}
       <ScrollView style={styles.content}>
-        <Text style={styles.welcomeText}>Active Debates</Text>
-        
-        {/* Active Debates List */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Climate Change</Text>
-          <Text style={styles.cardDescription}>
-            Is climate change primarily caused by human activity?
+        {/* Immigration Section */}
+        <View style={styles.findPartnerSection}>
+          <Text style={styles.sectionTitle}>Immigration</Text>
+          <Text style={styles.sectionDescription}>
+            To what extent do you agree with these statements?
           </Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.participants}>2 participants</Text>
-            <TouchableOpacity style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>Join Debate</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity 
+            style={styles.findPartnerButton}
+            onPress={() => router.push('/immigration-questions')}
+          >
+            <Text style={styles.findPartnerButtonText}>Find Debate Partner</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Universal Healthcare</Text>
-          <Text style={styles.cardDescription}>
-            Should healthcare be a universal right?
+        {/* Gun Control Section */}
+        <View style={styles.findPartnerSection}>
+          <Text style={styles.sectionTitle}>Gun Control</Text>
+          <Text style={styles.sectionDescription}>
+            To what extent do you agree with these statements?
           </Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.participants}>3 participants</Text>
-            <TouchableOpacity style={styles.joinButton}>
-              <Text style={styles.joinButtonText}>Join Debate</Text>
-            </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.findPartnerButton}
+            onPress={() => router.push('/immigration-questions')}
+          >
+            <Text style={styles.findPartnerButtonText}>Find Debate Partner</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Active Debates Section */}
+        <View style={styles.activeDebatesSection}>
+          <Text style={styles.sectionTitle}>Active Debates</Text>
+          
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Climate Change</Text>
+            <Text style={styles.cardDescription}>
+              Is climate change primarily caused by human activity?
+            </Text>
+            <View style={styles.cardFooter}>
+              <Text style={styles.participants}>2 participants</Text>
+              <TouchableOpacity style={styles.joinButton}>
+                <Text style={styles.joinButtonText}>Join Debate</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Universal Healthcare</Text>
+            <Text style={styles.cardDescription}>
+              Should healthcare be a universal right?
+            </Text>
+            <View style={styles.cardFooter}>
+              <Text style={styles.participants}>3 participants</Text>
+              <TouchableOpacity style={styles.joinButton}>
+                <Text style={styles.joinButtonText}>Join Debate</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Free Speech on Social Media</Text>
+            <Text style={styles.cardDescription}>
+              Should social media platforms have the right to moderate content?
+            </Text>
+            <View style={styles.cardFooter}>
+              <Text style={styles.participants}>1 participant</Text>
+              <TouchableOpacity style={styles.joinButton}>
+                <Text style={styles.joinButtonText}>Join Debate</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -111,5 +157,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  findPartnerSection: {
+    backgroundColor: '#e0f7fa',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 10,
+  },
+  sectionDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  findPartnerButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 10,
+  },
+  findPartnerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  activeDebatesSection: {
+    marginTop: 20,
   },
 }); 

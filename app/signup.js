@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
@@ -11,18 +11,69 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const createUser = async (email, username) => {
+    try {
+      console.log('Creating user:', { email, username });
+      
+      const response = await fetch('http://192.168.50.88:5000/api/users/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, username })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('User created:', result);
+        
+        // Store the user ID locally
+        await AsyncStorage.setItem('userId', result.user_id);
+        
+        return result.user_id;
+      } else {
+        throw new Error('Failed to create user');
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  };
 
   const handleSignup = async () => {
     try {
-      // TODO: Implement actual signup logic
-      console.log('Signup:', { name, email, password, confirmPassword });
+      setIsLoading(true);
+
+      // Validate inputs
+      if (!email || !password || !name) { // Changed from username to name
+        Alert.alert('Error', 'Please fill in all fields');
+        return;
+      }
+
+      if (password.length < 6) {
+        Alert.alert('Error', 'Password must be at least 6 characters');
+        return;
+      }
+
+      // Create user in Firebase
+      const userId = await createUser(email, name); // Changed from username to name
       
-      // For new users, we'll show the survey intro page
-      console.log('Navigating to survey intro');
-      router.replace('/survey-intro');
+      // Store user info locally
+      await AsyncStorage.setItem('userEmail', email);
+      await AsyncStorage.setItem('username', name); // Changed from username to name
+
+      console.log('User created successfully:', userId);
+
+      // Navigate to survey
+      router.replace('/survey');
+
     } catch (error) {
-      console.error('Error during signup:', error);
-      router.replace('/survey-intro');
+      console.error('Signup error:', error);
+      Alert.alert('Signup Failed', 'Please try again');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,6 +145,7 @@ export default function Signup() {
             <TouchableOpacity 
               style={styles.primaryButton}
               onPress={handleSignup}
+              disabled={isLoading}
             >
               <Text style={styles.buttonText}>Create Account</Text>
             </TouchableOpacity>
