@@ -1,34 +1,31 @@
-import os
-from firebase_admin import credentials, firestore
-import firebase_admin
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime
+from firebase_admin import firestore
 
-# Get the directory where this script is located
-current_dir = os.path.dirname(os.path.abspath(__file__))
-service_account_path = os.path.join(current_dir, "serviceAccountKey.json")
+from firebase_client import initialize_firebase
 
-# Check if service account key exists
-if not os.path.exists(service_account_path):
-    print("ERROR: serviceAccountKey.json not found!")
-    print("Please follow the setup instructions in backend/README.md")
-    exit(1)
-
-# Initialize Firebase Admin SDK
 try:
-    cred = credentials.Certificate(service_account_path)
-    firebase_admin.initialize_app(cred)
-    print("Firebase initialized successfully!")
-except Exception as e:
-    print(f"ERROR initializing Firebase: {e}")
-    exit(1)
+    from backend.get_chat_suggestions import (
+        get_argument_suggestions,
+        get_debate_tips,
+    )
+    from backend.matchmaking import find_best_opposing_match
+    
+except ImportError:
+    get_argument_suggestions = None
+    get_debate_tips = None
 
-# Get Firestore database
-db = firestore.client()
-
+# Initialize flask
 app = Flask(__name__)
 CORS(app)
+
+
+# Get firebase client
+db = initialize_firebase()
+
+
+# ___ Endpoints ___ #
 
 @app.route('/api/users/create', methods=['POST'])
 def create_user():
@@ -64,6 +61,7 @@ def create_user():
     except Exception as e:
         print(f"Error creating user: {e}")
         return jsonify({'error': 'Failed to create user'}), 500
+
 
 @app.route('/api/users/<user_id>/survey', methods=['POST'])
 def update_user_survey(user_id):
@@ -117,66 +115,58 @@ def join_debate():
         
         print(f"User {user_id} wants to join debate: {debate_topic}")
         
-        # Find partner with opposite views
-        current_political = user_data.get('political_spectrum')
-        opposite_views = {
-            'far_left': ['far_right', 'right'],
-            'left': ['right', 'far_right'],
-            'center_left': ['center_right', 'right'],
-            'center': ['far_left', 'far_right', 'left', 'right'],
-            'center_right': ['center_left', 'left'],
-            'right': ['left', 'far_left'],
-            'far_right': ['far_left', 'left']
-        }
-        
-        target_views = opposite_views.get(current_political, [])
-        partner_found = False
-        
-        print(f"Looking for partners with views: {target_views}")
-        
-        for view in target_views:
-            # Find available users with opposite views
-            available_users = db.collection('users').where(
-                'political_spectrum', '==', view
-            ).where('status', '==', 'available').where(
-                'survey_completed', '==', True
-            ).limit(1).stream()
-            
-            for user in available_users:
-                potential_partner_data = user.to_dict()
-                if potential_partner_data.get('user_id') != user_id:
-                    # Found a match!
-                    partner_found = True
-                    partner_id = potential_partner_data.get('user_id')
-                    print(f"Found partner: {partner_id} with views: {potential_partner_data.get('political_spectrum')}")
-                    
-                    # Create chat session
-                    chat_ref = db.collection('chats').document()
-                    chat_ref.set({
-                        'user1_id': user_id,
-                        'user2_id': partner_id,
-                        'debate_topic': debate_topic,
-                        'created_at': firestore.SERVER_TIMESTAMP,
-                        'status': 'active'
-                    })
-                    
-                    # Update both users to 'in_chat'
-                    user_ref.update({'status': 'in_chat'})
-                    db.collection('users').document(partner_id).update({'status': 'in_chat'})
-                    
-                    return jsonify({
-                        'success': True,
-                        'chat_id': chat_ref.id,
-                        'partner_views': potential_partner_data.get('political_spectrum'),
-                        'message': f'Paired with someone who identifies as {potential_partner_data.get("political_spectrum")}'
-                    }), 200
-        
-        if not partner_found:
+        available_users = db.collection('users').where(
+            'status', '==', 'available'
+        ).where(
+            'survey_completed', '==', True
+        ).stream()
+
+        candidates = [candidate.to_dict() for candidate in available_users]
+        best_match = find_best_opposing_match(
+            current_user=user_data,
+            candidates=candidates,
+            debate_topic=debate_topic,
+            excluded_user_ids={user_id},
+        )
+
+        if not best_match:
             print(f"No partner found for user {user_id}")
             return jsonify({
                 'success': False,
                 'message': 'No suitable partner found. You\'ll be notified when someone joins.'
             }), 200
+
+        potential_partner_data = best_match['user']
+        partner_id = potential_partner_data.get('user_id')
+        print(
+            f"Found partner: {partner_id} with score "
+            f"{best_match['match_score']['score']}"
+        )
+
+        # Create chat session
+        chat_ref = db.collection('chats').document()
+        chat_ref.set({
+            'user1_id': user_id,
+            'user2_id': partner_id,
+            'debate_topic': debate_topic,
+            'created_at': firestore.SERVER_TIMESTAMP,
+            'status': 'active',
+            'match_score': best_match['match_score']['score'],
+            'match_details': best_match['match_score'],
+        })
+
+        # Update both users to 'in_chat'
+        user_ref.update({'status': 'in_chat'})
+        db.collection('users').document(partner_id).update({'status': 'in_chat'})
+
+        return jsonify({
+            'success': True,
+            'chat_id': chat_ref.id,
+            'partner_id': partner_id,
+            'partner_views': potential_partner_data.get('political_spectrum'),
+            'match_score': best_match['match_score'],
+            'message': f'Paired with someone who identifies as {potential_partner_data.get("political_spectrum")}'
+        }), 200
             
     except Exception as e:
         print(f"Error in join_debate: {e}")
@@ -271,22 +261,93 @@ def create_chat_room(user1_id, user2_id):
 # ENDPOINT FOR UPDATING MESSAGE HISTORY
 @app.route('/api/update/<chat_id>/messages', methods=['POST'])
 def update_chat_messages(chat_id):
-'''Update message logs for a specific room. Body should include sender_id and message_content'''
+    """Update message logs for a specific room."""
     try:
-        # generate message_id
-        message_id = f'message_{int(datetime.now().timestamp())}
-
         data = request.get_json()
-        # add message to database
-        chat_ref = db.collection('chats').document(chat_id).collection('messages').document(chat_id)
-        chat_ref.update({
-            'senderId': data.get('sender_id')
-            'text': data.get('message_content')
+        chat_ref = db.collection('chats').document(chat_id).collection('messages').document()
+        chat_ref.set({
+            'senderId': data.get('sender_id'),
+            'text': data.get('message_content'),
             'timestamp': firestore.SERVER_TIMESTAMP
         })
+        return jsonify({'message': 'Message saved successfully'}), 200
     except Exception as e:
-        print(f'error saving message')
+        print(f'error saving message: {e}')
         return jsonify({'error': 'Failed to save message'}), 500
+
+
+
+# ___ OpenAI Endpoints ___ #
+@app.route('/api/suggestions', methods=['POST'])
+def get_suggestions():
+    """
+    API endpoint to get argument suggestions
+    """
+    try:
+        if get_argument_suggestions is None:
+            return jsonify({
+                'success': False,
+                'error': 'Argument suggestions service is not configured'
+            }), 503
+
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data or 'argument' not in data or 'topic' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields: argument and topic'
+            }), 400
+        
+        argument = data['argument']
+        topic = data['topic']
+        user_views = data.get('user_views', None)
+        
+        # Get suggestions from OpenAI
+        suggestions = get_argument_suggestions(argument, topic, user_views)
+        
+        return jsonify(suggestions)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/debate-tips', methods=['POST'])
+def get_tips():
+    """
+    API endpoint to get debate tips
+    """
+    try:
+        if get_debate_tips is None:
+            return jsonify({
+                'success': False,
+                'error': 'Debate tips service is not configured'
+            }), 503
+
+        data = request.get_json()
+        
+        if not data or 'topic' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing required field: topic'
+            }), 400
+        
+        topic = data['topic']
+        user_views = data.get('user_views', None)
+        
+        tips = get_debate_tips(topic, user_views)
+        
+        return jsonify(tips)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -301,4 +362,4 @@ if __name__ == '__main__':
     print("  POST /api/debate/join - Join debate with partner matching")
     print("  GET  /api/debate/status - Get debate status")
     print("  GET  /health - Health check")
-    app.run(debug=True, host='0.0.0.0', port=5000) 
+app.run(debug=True, host='0.0.0.0', port=5000) 
