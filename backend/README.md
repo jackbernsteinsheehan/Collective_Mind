@@ -19,7 +19,7 @@ pip install firebase-admin flask flask-cors
 ## Running the server
 
 ```bash
-python3 backend/firebase_config.py
+python3 backend/firebase/endpoints.py
 ```
 
 The server will run on `http://localhost:5000` 
